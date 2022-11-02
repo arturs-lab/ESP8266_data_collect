@@ -47,7 +47,7 @@ def collect_data():
             my_temp=ds.read_temp(sensor)
             #print('temperature:',my_temp)
             my_id_s=str(my_id) + str(i)
-            s.send(bytes('GET /datacollect.php?id=%s&type=t&val=%s HTTP/1.0\r\nHost: %s\r\n\r\n' % (my_id_s, my_temp, host), 'utf8'))
+            s.send(bytes('GET %s?id=%s&type=t&val=%s HTTP/1.0\r\nHost: %s\r\n\r\n' % (path, my_id_s, my_temp, host), 'utf8'))
             ++i
             while True:
                 data = s.recv(100)
