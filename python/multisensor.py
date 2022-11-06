@@ -13,7 +13,7 @@ def collect_data():
     ap_if.active(False)
 
     # the device is on D6
-    d = dht.DHT22(machine.Pin(12, machine.Pin.PULL_UP))
+    my_dht = dht.DHT22(machine.Pin(12, machine.Pin.PULL_UP))
 
     # the device is on D7
     dat = machine.Pin(13, machine.Pin.PULL_UP)
@@ -28,6 +28,7 @@ def collect_data():
     sta_if = network.WLAN(network.STA_IF)
     sta_if.active(True)
     sta_if.connect(ssid, pw)
+    #time.sleep_ms(1000)
     i=4
     while not sta_if.isconnected():
         time.sleep_ms(100)
@@ -42,12 +43,12 @@ def collect_data():
 
     while True:
         addr = socket.getaddrinfo(host, 80)[0][-1]
-        d.measure()
+        my_dht.measure()
         s = socket.socket()
         s.connect(addr)
-        my_temp=d.temperature()
+        my_temp=my_dht.temperature()
         print('temperature:',my_temp)
-        my_humid=d.humidity()
+        my_humid=my_dht.humidity()
         print('humidity:',my_humid)
         my_id_s=str(my_id) + '0'
         s.send(bytes('GET %s?id=%s&type=t&val=%s HTTP/1.0\r\nHost: %s\r\n\r\n' % (path, my_id_s, my_temp, host), 'utf8'))
