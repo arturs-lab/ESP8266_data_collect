@@ -6,6 +6,18 @@ import time
 import machine
 from settings import *
 
+def send_data(addr, socket, my_id_s, my_type, my_value):
+    s = socket.socket()
+    s.connect(addr)
+    s.send(bytes('GET %s?id=%s&type=%s&val=%s HTTP/1.0\r\nHost: %s\r\n\r\n' % (path, my_id_s, my_type, my_value, host), 'utf8'))
+    while True:
+        data = s.recv(100)
+        if data:
+            print(str(data, 'utf8'), end='')
+        else:
+            break
+    s.close()
+
 def collect_data():
 
     # make sure access point is off
@@ -44,31 +56,13 @@ def collect_data():
     while True:
         addr = socket.getaddrinfo(host, 80)[0][-1]
         my_dht.measure()
-        s = socket.socket()
-        s.connect(addr)
         my_temp=my_dht.temperature()
         print('temperature:',my_temp)
         my_humid=my_dht.humidity()
         print('humidity:',my_humid)
         my_id_s=str(my_id) + '0'
-        s.send(bytes('GET %s?id=%s&type=t&val=%s HTTP/1.0\r\nHost: %s\r\n\r\n' % (path, my_id_s, my_temp, host), 'utf8'))
-        while True:
-            data = s.recv(100)
-            if data:
-                print(str(data, 'utf8'), end='')
-            else:
-                break
-        s.close()
-        s = socket.socket()
-        s.connect(addr)
-        s.send(bytes('GET %s?id=%s&type=h&val=%s HTTP/1.0\r\nHost: %s\r\n\r\n' % (path, my_id_s, my_humid, host), 'utf8'))
-        while True:
-            data = s.recv(100)
-            if data:
-                print(str(data, 'utf8'), end='')
-            else:
-                break
-        s.close()
+        send_data(addr, socket, my_id_s, "t", my_temp)
+        send_data(addr, socket, my_id_s, "h", my_humid)
 
         ds.convert_temp()
         time.sleep_ms(1000)
@@ -77,17 +71,8 @@ def collect_data():
             my_temp=ds.read_temp(sensor)
             #print('temperature:',my_temp)
             my_id_s=str(my_id) + str(i)
-            s = socket.socket()
-            s.connect(addr)
-            s.send(bytes('GET %s?id=%s&type=t&val=%s HTTP/1.0\r\nHost: %s\r\n\r\n' % (path, my_id_s, my_temp, host), 'utf8'))
+            send_data(addr, socket, my_id_s, "t", my_temp)
             ++i
-            while True:
-                data = s.recv(100)
-                if data:
-                    print(str(data, 'utf8'), end='')
-                else:
-                    break
-            s.close()
         time.sleep_ms(60*1000-1000)
 
 if __name__ == '__main__':
