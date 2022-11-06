@@ -4,7 +4,21 @@ import network
 import socket
 import time
 import machine
+from machine import ADC
 from settings import *
+
+def measure_battery():
+    my_bat = ADC(0)
+    # using voltage divider to reduce 5v to 2.5v
+    # also, we're getting an int, not a voltage
+    # so adjust the result
+    # also, seems that ADC is not linear.
+    # 2.5V -> 166
+    # 5.0V -> 164
+    # 7.5V -> 136
+    # though the most that should be measured is 3.3V*2
+    my_voltage = my_bat.read() / 164
+    return my_voltage
 
 def send_data(addr, socket, my_id_s, my_type, my_value):
     s = socket.socket()
@@ -13,7 +27,8 @@ def send_data(addr, socket, my_id_s, my_type, my_value):
     while True:
         data = s.recv(100)
         if data:
-            print(str(data, 'utf8'), end='')
+            #print(str(data, 'utf8'), end='')
+            pass
         else:
             break
     s.close()
@@ -49,7 +64,7 @@ def collect_data():
         time.sleep_ms(100)
         --i
         if i==0:
-            print('Failed to connect')
+            #print('Failed to connect')
             break
     # need to do this to get IP when cold boot
     addr = socket.getaddrinfo(host, 80)[0][-1]
@@ -62,16 +77,24 @@ def collect_data():
 
         # do this ahead of the time because it takes 750ms for conversion to finish
         ds.convert_temp()
-        # meanwhile process DHT sensor
+
+        # meanwhile measure battery voltage
+        # tie it to sensor 0 for now
+        my_id_s=str(my_id) + '0'
+        my_bat=measure_battery()
+        #print('battery:',my_bat)
+        send_data(addr, socket, my_id_s, "b", my_bat)
+
+        # and process DHT sensor
         my_dht.measure()
         my_temp=my_dht.temperature()
-        print('temperature:',my_temp)
+        #print('temperature:',my_temp)
         my_humid=my_dht.humidity()
-        print('humidity:',my_humid)
+        #print('humidity:',my_humid)
         my_id_s=str(my_id) + '0'
         send_data(addr, socket, my_id_s, "t", my_temp)
         send_data(addr, socket, my_id_s, "h", my_humid)
-        
+
         # shouldn't need this now
         #time.sleep_ms(1000)
         i=1
