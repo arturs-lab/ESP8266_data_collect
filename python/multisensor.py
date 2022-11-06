@@ -64,7 +64,7 @@ def collect_data():
         time.sleep_ms(100)
         --i
         if i==0:
-            print('Failed to connect')
+            #print('Failed to connect')
             break
     # need to do this to get IP when cold boot
     addr = socket.getaddrinfo(host, 80)[0][-1]
@@ -82,15 +82,15 @@ def collect_data():
         # tie it to sensor 0 for now
         my_id_s=str(my_id) + '0'
         my_bat=measure_battery()
-        print('battery:',my_bat)
+        #print('battery:',my_bat)
         send_data(addr, socket, my_id_s, "b", my_bat)
 
         # and process DHT sensor
         my_dht.measure()
         my_temp=my_dht.temperature()
-        print('temperature:',my_temp)
+        #print('temperature:',my_temp)
         my_humid=my_dht.humidity()
-        print('humidity:',my_humid)
+        #print('humidity:',my_humid)
         my_id_s=str(my_id) + '0'
         send_data(addr, socket, my_id_s, "t", my_temp)
         send_data(addr, socket, my_id_s, "h", my_humid)
@@ -100,7 +100,7 @@ def collect_data():
         i=1
         for sensor in sensors:
             my_temp=ds.read_temp(sensor)
-            print('temperature:',my_temp)
+            #print('temperature:',my_temp)
             my_id_s=str(my_id) + str(i)
             send_data(addr, socket, my_id_s, "t", my_temp)
             ++i
@@ -110,5 +110,4 @@ def collect_data():
 
 if __name__ == '__main__':
     collect_data()
-
 
