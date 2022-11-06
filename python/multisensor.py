@@ -54,7 +54,9 @@ def collect_data():
     _,_,_,my_id=my_ip.split('.',4)
 
     while True:
-        addr = socket.getaddrinfo(host, 80)[0][-1]
+        # do this ahead of the time because it takes 750ms for conversion to finish
+        ds.convert_temp()
+        # meanwhile process DHT sensor
         my_dht.measure()
         my_temp=my_dht.temperature()
         print('temperature:',my_temp)
@@ -63,9 +65,9 @@ def collect_data():
         my_id_s=str(my_id) + '0'
         send_data(addr, socket, my_id_s, "t", my_temp)
         send_data(addr, socket, my_id_s, "h", my_humid)
-
-        ds.convert_temp()
-        time.sleep_ms(1000)
+        
+        # shouldn't need this now
+        #time.sleep_ms(1000)
         i=1
         for sensor in sensors:
             my_temp=ds.read_temp(sensor)
