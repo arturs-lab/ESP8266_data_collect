@@ -20,6 +20,9 @@ def send_data(addr, socket, my_id_s, my_type, my_value):
 
 def collect_data():
 
+    my_led = machine.Pin(2, machine.Pin.OUT)
+    my_led.value(1)
+
     # make sure access point is off
     ap_if = network.WLAN(network.AP_IF)
     ap_if.active(False)
@@ -54,6 +57,9 @@ def collect_data():
     _,_,_,my_id=my_ip.split('.',4)
 
     while True:
+        # turn on led
+        my_led.value(0)
+
         # do this ahead of the time because it takes 750ms for conversion to finish
         ds.convert_temp()
         # meanwhile process DHT sensor
@@ -75,6 +81,8 @@ def collect_data():
             my_id_s=str(my_id) + str(i)
             send_data(addr, socket, my_id_s, "t", my_temp)
             ++i
+        # turn off led before going to sleep
+        my_led.value(1)
         time.sleep_ms(60*1000-1000)
 
 if __name__ == '__main__':
