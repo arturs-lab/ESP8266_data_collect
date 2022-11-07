@@ -13,9 +13,9 @@ def measure_battery():
     # also, we're getting an int, not a voltage
     # so adjust the result
     # also, seems that ADC is not linear.
-    # 2.5v -> 412
-    # 5.0v -> 806
-    # 7.5v -> 1024 probably off the scale
+    # 2.5v -> 412 / 166
+    # 5.0v -> 806 / 164
+    # 7.5v -> 1024 probably off the scale / 136
     # the most that should be measured is 3.3V*2
     my_voltage = my_bat.read() / 164
     return my_voltage
