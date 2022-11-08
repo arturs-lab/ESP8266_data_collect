@@ -18,6 +18,7 @@ def measure_battery():
     # 7.5v -> 1024 probably off the scale / 136
     # the most that should be measured is 3.3V*2
     my_voltage = my_bat.read() / 164
+    #my_voltage = ( my_bat.read() / 159.4 ) + 0.06900878294
     return my_voltage
 
 def send_data(addr, socket, my_id_s, my_type, my_value):
@@ -57,17 +58,23 @@ def collect_data():
 
     sta_if = network.WLAN(network.STA_IF)
     sta_if.active(True)
+    if not sta_if.active():
+        print("Failed to activate WLAN")
+        quit()
     sta_if.connect(ssid, pw)
-    #time.sleep_ms(1000)
-    i=4
+    i=5
     while not sta_if.isconnected():
         time.sleep_ms(100)
-        --i
+        i -= 1
         if i==0:
-            #print('Failed to connect')
-            break
+            print('Failed to connect')
+            quit()
+
+    print(sta_if.ifconfig())
+    print("going to get addr")
     # need to do this to get IP when cold boot
     addr = socket.getaddrinfo(host, 80)[0][-1]
+    print(addr)
     my_ip=sta_if.ifconfig()[0]
     _,_,_,my_id=my_ip.split('.',4)
 
