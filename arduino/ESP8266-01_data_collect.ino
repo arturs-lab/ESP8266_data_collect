@@ -147,7 +147,7 @@ void loop() {
       strcat (payload, my_id);
       strcat (payload, "&type=h&val=");
       strcat (payload, String(hum).c_str());
-      strcat (payload, "&raw_h=");
+      strcat (payload, "&raw=");
       strcat (payload, String(raw_h).c_str());
       Serial.printf("severPath is %d char long\n",(unsigned)strlen(payload));
       
@@ -189,7 +189,7 @@ void loop() {
       strcat (payload, my_id);
       strcat (payload, "&type=t&val=");
       strcat (payload, String(temp).c_str());
-      strcat (payload, "&raw_t=");
+      strcat (payload, "&raw=");
       strcat (payload, String(raw_t).c_str());
       Serial.printf("severPath is %d char long\n",(unsigned)strlen(payload));
 
