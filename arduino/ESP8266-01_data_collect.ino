@@ -19,19 +19,18 @@
 #include <WiFiClient.h>
 #include <DHT.h>;
 //#include <DHTesp.h>
+#include <string.h>
 
 //#define LED_PIN 1 // ESP8266 01
 #define DHTPIN 2     // what pin we're connected to
 #define DHTTYPE DHT22   // DHT 22  (AM2302)
 DHT dht(DHTPIN, DHTTYPE); //// Initialize DHT sensor for normal 16mhz Arduino
 
-#define my_id 1810
-
 const char* ssid = "SSID";
 const char* password = "password";
 
 //Your Domain name with URL path or IP address with path
-String serverName = "http://172.16.0.2/datacollect.php";
+const char* serverName = "http://172.16.0.2/datacollect.php";
 
 // the following variables are unsigned longs because the time, measured in
 // milliseconds, will quickly become a bigger number than can be stored in an int.
@@ -44,9 +43,15 @@ unsigned long timerDelay = 60;
 
 float hum;  //Stores humidity value
 float temp; //Stores temperature value
-String serverPath;
-String my_id;
+char payload[80],tempstr[80];
+String response;
+char my_id[5];
 int httpResponseCode;
+// calibration for humidity and temp
+float ha=1,hb=0,ta=1,tb=0;
+char* caldata;
+char* calend;
+char calstr[10];
 
 void setup() {
   #ifdef LED_PIN
@@ -80,9 +85,30 @@ void setup() {
     //Serial.printf("Timer set to %d seconds (timerDelay variable), it will take %d seconds before publishing the first reading.", timerDelay, timerDelay);
   #endif
 
+  char* last_byte = strrchr ( WiFi.localIP().toString().c_str(), '.' );
+  last_byte++;
+  strcpy (my_id, last_byte);
+  strcat (my_id, "0");
+  #ifndef LED_PIN
+    Serial.printf("My id is %s\n", my_id);
   #endif
   
   lastTime = 0;
+}
+
+void process_param(char pname[4], float *ha){
+  caldata = strstr(payload, pname);
+  if (caldata != NULL){
+    caldata += 3;
+    strcpy (tempstr,caldata);
+    calend = strstr(tempstr, ";");
+    if (caldata == NULL){
+      Serial.println("New value for ha missing ';'");
+    }
+    *calend = '\0';   // null character manually added 
+    *ha = atof(tempstr);
+    Serial.printf("Setting %s%f\n", pname, *ha);
+  }
 }
 
 void loop() {
@@ -100,8 +126,8 @@ void loop() {
       #ifndef LED_PIN
         Serial.print("Getting data\n");
       #endif
-      hum = dht.readHumidity();
-      temp= dht.readTemperature();
+      hum = ha * dht.readHumidity() + hb;
+      temp= ta * dht.readTemperature() + tb;
       //Print temp and humidity values to serial monitor
       #ifndef LED_PIN 
         Serial.print("Humidity: ");
@@ -110,62 +136,90 @@ void loop() {
         Serial.print(temp);
         Serial.println(" Celsius");
       #endif
-      serverPath = serverName + "?id=" + my_id + "&type=h&val=" + hum;
+      //payload = serverName + "?id=" + my_id + "&type=h&val=" + hum;
+      strcpy (payload, serverName);
+      strcat (payload, "?id=");
+      strcat (payload, my_id);
+      strcat (payload, "&type=h&val=");
+      strcat (payload, String(hum).c_str());
+      Serial.printf("severPath is %d char long\n",(unsigned)strlen(payload));
       
       // Your Domain name with URL path or IP address with path
-      http.begin(client, serverPath.c_str());
+      http.begin(client, payload);
   
       // If you need Node-RED/server authentication, insert user and password below
       //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
         
       // Send HTTP GET request
       httpResponseCode = http.GET();
+      #ifndef LED_PIN
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+      #endif
       
       if (httpResponseCode>0) {
-        String payload = http.getString();
-      #ifndef LED_PIN
-          Serial.print("HTTP Response code: ");
-          Serial.println(httpResponseCode);
+        //response = http.getString();
+        http.getString().toCharArray(payload,sizeof(payload));
+        #ifndef LED_PIN
           Serial.println(payload);
+        #endif
+        process_param("ha=", &ha);
+        process_param("hb=", &hb);
       }
+      #ifndef LED_PIN
       else {
         Serial.print("Error code: ");
         Serial.println(httpResponseCode);
-      #endif
       }
-      
+      #endif
+            
       // Free resources
       http.end();
 
-      serverPath = serverName + "?id=" + my_id + "&type=t&val=" + temp;
+      // payload + "?id=" + my_id + "&type=t&val=" + temp;
+      strcpy (payload, serverName);
+      strcat (payload, "?id=");
+      strcat (payload, my_id);
+      strcat (payload, "&type=t&val=");
+      strcat (payload, String(temp).c_str());
+      Serial.printf("severPath is %d char long\n",(unsigned)strlen(payload));
 
       // Your Domain name with URL path or IP address with path
-      http.begin(client, serverPath.c_str());
+      http.begin(client, payload);
   
       // If you need Node-RED/server authentication, insert user and password below
       //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
         
       // Send HTTP GET request
       httpResponseCode = http.GET();
-      
-      if (httpResponseCode>0) {
-        String payload = http.getString();
-        #ifndef LED_PIN
-          Serial.print("HTTP Response code: ");
-          Serial.println(httpResponseCode);
-          Serial.println(payload);
-      }
-        else {
-        Serial.print("Error code: ");
+      #ifndef LED_PIN
+        Serial.print("HTTP Response code: ");
         Serial.println(httpResponseCode);
       #endif
+      
+      if (httpResponseCode>0) {
+        //response = http.getString();
+        http.getString().toCharArray(payload,sizeof(payload));
+        #ifndef LED_PIN
+          Serial.println(payload);
+        #endif
+        process_param("ta=", &ta);
+        process_param("tb=", &tb);
       }
+      #ifndef LED_PIN
+      else {
+        Serial.print("Error code: ");
+        Serial.println(httpResponseCode);
+      }
+      #endif
 
       // Free resources
       http.end();
       
       #ifdef LED_PIN
         digitalWrite(LED_PIN, HIGH);
+      #else
+        Serial.println("End cycle.");
       #endif
     }
     #ifndef LED_PIN
@@ -176,3 +230,4 @@ void loop() {
     lastTime = millis();
   }
 }
+
