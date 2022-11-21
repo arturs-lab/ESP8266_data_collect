@@ -41,6 +41,8 @@ unsigned long lastTime = 0;
 // Set timer to 5 seconds (5000)
 unsigned long timerDelay = 60;
 
+float raw_h;
+float raw_t;
 float hum;  //Stores humidity value
 float temp; //Stores temperature value
 char payload[80],tempstr[80];
@@ -126,8 +128,10 @@ void loop() {
       #ifndef LED_PIN
         Serial.print("Getting data\n");
       #endif
-      hum = ha * dht.readHumidity() + hb;
-      temp= ta * dht.readTemperature() + tb;
+      raw_h = dht.readHumidity();
+      raw_t = dht.readTemperature();
+      hum = ha * raw_h + hb;
+      temp= ta * raw_t + tb;
       //Print temp and humidity values to serial monitor
       #ifndef LED_PIN 
         Serial.print("Humidity: ");
@@ -135,6 +139,7 @@ void loop() {
         Serial.print(" %, Temp: ");
         Serial.print(temp);
         Serial.println(" Celsius");
+        Serial.printf("Raw data: h=%f t=%f", raw_h, raw_t);
       #endif
       //payload = serverName + "?id=" + my_id + "&type=h&val=" + hum;
       strcpy (payload, serverName);
@@ -142,6 +147,8 @@ void loop() {
       strcat (payload, my_id);
       strcat (payload, "&type=h&val=");
       strcat (payload, String(hum).c_str());
+      strcat (payload, "&raw_h=");
+      strcat (payload, String(raw_h).c_str());
       Serial.printf("severPath is %d char long\n",(unsigned)strlen(payload));
       
       // Your Domain name with URL path or IP address with path
@@ -182,6 +189,8 @@ void loop() {
       strcat (payload, my_id);
       strcat (payload, "&type=t&val=");
       strcat (payload, String(temp).c_str());
+      strcat (payload, "&raw_t=");
+      strcat (payload, String(raw_t).c_str());
       Serial.printf("severPath is %d char long\n",(unsigned)strlen(payload));
 
       // Your Domain name with URL path or IP address with path
@@ -230,4 +239,3 @@ void loop() {
     lastTime = millis();
   }
 }
-
