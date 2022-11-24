@@ -96,6 +96,15 @@ void setup() {
   #endif
   
   lastTime = 0;
+
+  // this is to initialize ha, hb, ta and tb
+  float my_nan = 1.0 / 0.0;
+ 
+  build_payload("h", my_nan, my_nan);
+  send_payload('h');
+
+  build_payload("t", my_nan, my_nan);
+  send_payload('t');
 }
 
 void process_param(char pname[4], float *ha){
@@ -113,13 +122,67 @@ void process_param(char pname[4], float *ha){
   }
 }
 
+void build_payload(const char *type, float val, float raw){
+  //payload = serverName + "?id=" + my_id + "&type=h&val=" + hum;
+  strcpy (payload, serverName);
+  strcat (payload, "?id=");
+  strcat (payload, my_id);
+  strcat (payload, "&type=");
+  strcat (payload, type);
+  strcat (payload, "&val=");
+  strcat (payload, String(val).c_str());
+  strcat (payload, "&raw=");
+  strcat (payload, String(raw).c_str());
+  Serial.printf("severPath is %d char long\n",(unsigned)strlen(payload));
+}
+
+void send_payload(char type){
+  WiFiClient client;
+  HTTPClient http;
+
+  // Your Domain name with URL path or IP address with path
+  http.begin(client, payload);
+
+  // If you need Node-RED/server authentication, insert user and password below
+  //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
+ 
+  // Send HTTP GET request
+  httpResponseCode = http.GET();
+  #ifndef LED_PIN
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+  #endif
+ 
+  if (httpResponseCode>0) {
+    //response = http.getString();
+    http.getString().toCharArray(payload,sizeof(payload));
+    #ifndef LED_PIN
+      Serial.println(payload);
+    #endif
+    if ( type == 'h' ){
+      process_param("ha=", &ha);
+      process_param("hb=", &hb);
+    } else if ( type == 't' ){
+      process_param("ta=", &ta);
+      process_param("tb=", &tb);
+    }        
+  }
+  #ifndef LED_PIN
+  else {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
+  }
+  #endif
+ 
+  // Free resources
+  http.end();
+}
+
 void loop() {
   // Send an HTTP POST request depending on timerDelay
   if ((millis() - lastTime) > (timerDelay * 1000)) {
     //Check WiFi connection status
     if(WiFi.status()== WL_CONNECTED){
-      WiFiClient client;
-      HTTPClient http;
 
       #ifdef LED_PIN
         digitalWrite(LED_PIN, LOW);
@@ -141,90 +204,13 @@ void loop() {
         Serial.println(" Celsius");
         Serial.printf("Raw data: h=%f t=%f", raw_h, raw_t);
       #endif
-      //payload = serverName + "?id=" + my_id + "&type=h&val=" + hum;
-      strcpy (payload, serverName);
-      strcat (payload, "?id=");
-      strcat (payload, my_id);
-      strcat (payload, "&type=h&val=");
-      strcat (payload, String(hum).c_str());
-      strcat (payload, "&raw=");
-      strcat (payload, String(raw_h).c_str());
-      Serial.printf("severPath is %d char long\n",(unsigned)strlen(payload));
-      
-      // Your Domain name with URL path or IP address with path
-      http.begin(client, payload);
-  
-      // If you need Node-RED/server authentication, insert user and password below
-      //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
-        
-      // Send HTTP GET request
-      httpResponseCode = http.GET();
-      #ifndef LED_PIN
-        Serial.print("HTTP Response code: ");
-        Serial.println(httpResponseCode);
-      #endif
-      
-      if (httpResponseCode>0) {
-        //response = http.getString();
-        http.getString().toCharArray(payload,sizeof(payload));
-        #ifndef LED_PIN
-          Serial.println(payload);
-        #endif
-        process_param("ha=", &ha);
-        process_param("hb=", &hb);
-      }
-      #ifndef LED_PIN
-      else {
-        Serial.print("Error code: ");
-        Serial.println(httpResponseCode);
-      }
-      #endif
-            
-      // Free resources
-      http.end();
 
-      // payload + "?id=" + my_id + "&type=t&val=" + temp;
-      strcpy (payload, serverName);
-      strcat (payload, "?id=");
-      strcat (payload, my_id);
-      strcat (payload, "&type=t&val=");
-      strcat (payload, String(temp).c_str());
-      strcat (payload, "&raw=");
-      strcat (payload, String(raw_t).c_str());
-      Serial.printf("severPath is %d char long\n",(unsigned)strlen(payload));
+      build_payload("h", hum, raw_h);
+      send_payload('h');
 
-      // Your Domain name with URL path or IP address with path
-      http.begin(client, payload);
-  
-      // If you need Node-RED/server authentication, insert user and password below
-      //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
-        
-      // Send HTTP GET request
-      httpResponseCode = http.GET();
-      #ifndef LED_PIN
-        Serial.print("HTTP Response code: ");
-        Serial.println(httpResponseCode);
-      #endif
-      
-      if (httpResponseCode>0) {
-        //response = http.getString();
-        http.getString().toCharArray(payload,sizeof(payload));
-        #ifndef LED_PIN
-          Serial.println(payload);
-        #endif
-        process_param("ta=", &ta);
-        process_param("tb=", &tb);
-      }
-      #ifndef LED_PIN
-      else {
-        Serial.print("Error code: ");
-        Serial.println(httpResponseCode);
-      }
-      #endif
+      build_payload("t", temp, raw_t);
+      send_payload('t');
 
-      // Free resources
-      http.end();
-      
       #ifdef LED_PIN
         digitalWrite(LED_PIN, HIGH);
       #else
