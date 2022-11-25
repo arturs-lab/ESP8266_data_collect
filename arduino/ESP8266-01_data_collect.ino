@@ -20,14 +20,12 @@
 #include <DHT.h>;
 //#include <DHTesp.h>
 #include <string.h>
+#include "settings.h"
 
 //#define LED_PIN 1 // ESP8266 01
 #define DHTPIN 2     // what pin we're connected to
 #define DHTTYPE DHT22   // DHT 22  (AM2302)
 DHT dht(DHTPIN, DHTTYPE); //// Initialize DHT sensor for normal 16mhz Arduino
-
-const char* ssid = "SSID";
-const char* password = "password";
 
 //Your Domain name with URL path or IP address with path
 const char* serverName = "http://172.16.0.2/datacollect.php";
